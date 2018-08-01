@@ -30,7 +30,7 @@ namespace NHP_Container_OCR_Form
         HDevEngine engine = new HDevEngine();
 
         // Engineer Mode for debugger
-        Boolean engMode = false;
+        Boolean engMode = true;
         //
         private DateTime t;
         private DataGridView dgv;
@@ -88,14 +88,14 @@ namespace NHP_Container_OCR_Form
             mainWindowList[1] = hSmartWindowControl2.HalconWindow;
             //mainWindowList[2] = hSmartWindowControl3.HalconWindow;
             //mainWindowList[3] = hSmartWindowControl4.HalconWindow;
-            hSmartWindowControl5.Hide();
-            hSmartWindowControl6.Hide();
-            sideWindowList[0] = hSmartWindowControl3.HalconWindow;
-            sideWindowList[1] = hSmartWindowControl4.HalconWindow;
+            //hSmartWindowControl5.Hide();
+            //hSmartWindowControl6.Hide();
+            //sideWindowList[0] = hSmartWindowControl3.HalconWindow;
+            //sideWindowList[1] = hSmartWindowControl4.HalconWindow;
             //sideWindowList[2] = hSmartWindowControl7.HalconWindow;
             //sideWindowList[3] = hSmartWindowControl8.HalconWindow;
-            hSmartWindowControl7.Hide();
-            hSmartWindowControl8.Hide();
+            //hSmartWindowControl7.Hide();
+            //hSmartWindowControl8.Hide();
             setCamera();
 
             updateSetting();
@@ -428,6 +428,89 @@ namespace NHP_Container_OCR_Form
             mainWindowList[1].SetColor("red");
             mainWindowList[0].DispObj(_1);
             mainWindowList[1].DispObj(_2);
+        }
+
+        private void CaptureButton_Click(object sender, EventArgs e)
+        {
+            clearAllWindow();
+            HTuple _, height, width, lic, con;
+            HRegion licRegion, conRegion;
+            HImage conImage, licImage;
+
+            try
+            {
+                {
+                    licImage = bottomView.GrabImageAsync(-1);
+                    HRegion ROI = new HRegion();
+                    ROI.GenRectangle1(licXi, licYi, licXf, licYf);
+                    ocr_NHP_Call.SetInputIconicParamObject("Image", licImage);
+                    ocr_NHP_Call.SetInputIconicParamObject("ROI", ROI);
+                    ocr_NHP_Call.SetInputCtrlParamTuple("typeChk", "license");
+                    ocr_NHP_Call.SetInputCtrlParamTuple("threshold", licThres);
+                    ocr_NHP_Call.Execute();
+                    licRegion = ocr_NHP_Call.GetOutputIconicParamRegion("Characters");
+                    lic = ocr_NHP_Call.GetOutputCtrlParamTuple("result");
+                    charArray2String_Call.SetInputCtrlParamTuple("inputArray", lic);
+                    charArray2String_Call.Execute();
+                    lic = charArray2String_Call.GetOutputCtrlParamTuple("result");
+                }
+                {
+                    conImage = topView.GrabImageAsync(-1);
+                    HRegion ROI = new HRegion();
+                    ROI.GenRectangle1(conXi, conYi, conXf, conYf);
+                    ocr_NHP_Call.SetInputIconicParamObject("Image", conImage);
+                    ocr_NHP_Call.SetInputIconicParamObject("ROI", ROI);
+                    ocr_NHP_Call.SetInputCtrlParamTuple("typeChk", "container");
+                    ocr_NHP_Call.SetInputCtrlParamTuple("threshold", conThres);
+                    ocr_NHP_Call.Execute();
+                    conRegion = ocr_NHP_Call.GetOutputIconicParamRegion("Characters");
+                    con = ocr_NHP_Call.GetOutputCtrlParamTuple("result");
+                    charArray2String_Call.SetInputCtrlParamTuple("inputArray", con);
+                    charArray2String_Call.Execute();
+                    con = charArray2String_Call.GetOutputCtrlParamTuple("result");
+                }
+
+
+                conImage.GetImagePointer1(out _, out width, out height);
+                conImage = conImage.RotateImage(180.0, "constant");
+                mainWindowList[0].SetPart(0, 0, height.I, width.I);
+                mainWindowList[1].SetPart(0, 0, height.I, width.I);
+
+
+                sideWindowList[0].SetPart(0, 0, height.I, width.I);
+                sideWindowList[1].SetPart(0, 0, height.I, width.I);
+
+                mainWindowList[0].DispImage(licImage);
+                mainWindowList[1].DispImage(conImage);
+                /*lic = programCall.GetCtrlVarTuple("license");
+                con = programCall.GetCtrlVarTuple("container");
+                */
+                license = licenseLabel;
+                container = containerLabel;
+                /*
+                licRegion = programCall.GetIconicVarRegion("Characters");
+                conRegion = programCall.GetIconicVarRegion("Characters2");
+                */
+                sideWindowList[0].SetColored(12);
+                sideWindowList[1].SetColored(12);
+                sideWindowList[0].DispObj(licRegion);
+                sideWindowList[1].DispObj(conRegion);
+
+                license.Text = lic.S;
+                container.Text = con.S;
+                t = DateTime.Now;
+                String date = t.ToString("dd-MM-yyyy");
+                String timeIn = t.ToString("HH:mm:ss");
+                //Console.WriteLine(time);
+                //Console.WriteLine(time.Substring(0, 10));
+                //Console.WriteLine(time.Substring(0, 7));
+                setData(con.S, lic.S, date, timeIn, "");
+                uploadToCloud(licImage, conImage, lic.S, con.S);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
         }
     }
 }
