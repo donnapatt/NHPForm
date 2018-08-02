@@ -30,7 +30,7 @@ namespace NHP_Container_OCR_Form
         HDevEngine engine = new HDevEngine();
 
         // Engineer Mode for debugger
-        Boolean engMode = true;
+        Boolean engMode = false;
         //
         private DateTime t;
         private DataGridView dgv;
@@ -90,14 +90,15 @@ namespace NHP_Container_OCR_Form
             //mainWindowList[3] = hSmartWindowControl4.HalconWindow;
             //hSmartWindowControl5.Hide();
             //hSmartWindowControl6.Hide();
-            //sideWindowList[0] = hSmartWindowControl3.HalconWindow;
-            //sideWindowList[1] = hSmartWindowControl4.HalconWindow;
+            sideWindowList[0] = hSmartWindowControl3.HalconWindow;
+            sideWindowList[1] = hSmartWindowControl4.HalconWindow;
             //sideWindowList[2] = hSmartWindowControl7.HalconWindow;
             //sideWindowList[3] = hSmartWindowControl8.HalconWindow;
             //hSmartWindowControl7.Hide();
             //hSmartWindowControl8.Hide();
-            setCamera();
 
+            initSetup();
+            setCamera();
             updateSetting();
 
             dgv.AutoSize = false;
@@ -250,6 +251,16 @@ namespace NHP_Container_OCR_Form
 
         private void setCamera()
         {
+            if (topView != null)
+            {
+                topView.Dispose();
+                topView = new HFramegrabber();
+            }
+            if (bottomView != null)
+            {
+                bottomView.Dispose();
+                bottomView = new HFramegrabber();
+            }
             if (engMode == true)
             {
                 topView.OpenFramegrabber("DirectShow", 1, 1, 0, 0, 0, 0, "default", 8, "rgb", -1, "false", "default", "[0] Integrated Webcam", 0, -1);
@@ -387,6 +398,7 @@ namespace NHP_Container_OCR_Form
         private void applySettingButton_Click(object sender, EventArgs e)
         {
             updateSetting();
+            writeFile();
         }
         private void clearAllWindow()
         {
@@ -511,6 +523,48 @@ namespace NHP_Container_OCR_Form
             {
                 Console.WriteLine(ex.ToString());
             }
+        }
+
+        private void reconnectButton_Click(object sender, EventArgs e)
+        {
+            if(topView != null)
+            {
+                topView.Dispose();
+                topView = new HFramegrabber();
+            }
+            if(bottomView != null)
+            {
+                bottomView.Dispose();
+                bottomView = new HFramegrabber();
+            }
+            setCamera();
+        }
+
+        private void initSetup()
+        {
+            String setupPath = @"..\Setup.txt";
+            string[] lines = System.IO.File.ReadAllLines(setupPath);
+
+            var licThres = lines[0];
+            var conThres = lines[1];
+            string[] licPosition = lines[2].Split(',');
+            string[] conPosition = lines[3].Split(',');
+            TextBox[] licTextbox = { licXiVal, licYiVal, licXfVal, licYfVal };
+            TextBox[] conTextbox = { conXiVal, conYiVal, conXfVal, conYfVal };
+            licThresVal.Text = licThres;
+            conThresVal.Text = conThres;
+            for(int i = 0; i < 4; i++)
+            {
+                licTextbox[i].Text = licPosition[i];
+                conTextbox[i].Text = conPosition[i];
+            }
+        }
+
+        private void writeFile()
+        {
+            String setupPath = @"..\Setup.txt";
+            string[] lines = { licThresVal.Text, conThresVal.Text, licXiVal.Text + ","+licYiVal.Text + ","+licXfVal.Text + ","+licYfVal.Text, conXiVal.Text + "," + conYiVal.Text + "," + conXfVal.Text + "," + conYfVal.Text };
+            System.IO.File.WriteAllLines(setupPath, lines);
         }
     }
 }
